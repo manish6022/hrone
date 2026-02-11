@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   Calendar,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -58,6 +59,11 @@ const navigation = [
     href: "/production",
     icon: Factory,
     permission: "production_view",
+  },
+  {
+    name: "UI Showcase",
+    href: "/ui-showcase",
+    icon: Palette,
   },
 ];
 
