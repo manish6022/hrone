@@ -8,6 +8,7 @@ import { Plus, Search, Loader2, UserPlus, Users, Shield, Zap, TrendingUp, MoreVe
 import { StatCard } from "@/components/StatCard";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface User {
   id: number;
@@ -567,33 +568,39 @@ export default function UsersPage() {
               initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ delay: 0.6, duration: 0.6 }}
-              className="flex justify-start items-center gap-4 mt-8 flex-wrap"
+              className="flex justify-center items-center mt-8"
             >
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg disabled:opacity-50 transition-all"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="flex gap-2">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-2 rounded-lg transition ${currentPage === page ? 'bg-gray-900 text-white' : 'bg-white/70 backdrop-blur-md border border-white/50 hover:bg-slate-50'}`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg disabled:opacity-50 transition-all"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      href="#" 
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <PaginationItem key={page}>
+                      <PaginationLink 
+                        href="#" 
+                        isActive={currentPage === page}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      href="#" 
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </motion.div>
 
           </motion.div>
