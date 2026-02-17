@@ -7,24 +7,29 @@ import { motion } from 'framer-motion';
 import { Plus, Search, Loader2, UserPlus, Users, Shield, Zap, TrendingUp, MoreVertical, Building2, DollarSign, ArrowUpRight, MoreHorizontal, LucideIcon, ShieldAlert, Filter, Mail, ChevronLeft, ChevronRight, List, Grid, BarChart3 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/dateUtils";
 import { useAuth } from "@/context/AuthContext";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface User {
   id: number;
   username: string;
   email: string;
+  enabled: boolean;
   roles: Array<string | { id: number; name: string; privileges?: any[] }>;
   employeeResponseDto?: {
+    id: number;
     firstName: string;
     lastName: string;
+    phone: string;
     department: string;
     designation: string;
+    joiningDate: string;
   };
 }
 
 export default function UsersPage() {
-  const { hasPermission, user } = useAuth();
+  const { hasPermission, user, isHR, isSuperAdmin, isManager, isRegularUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
@@ -193,7 +198,7 @@ export default function UsersPage() {
               <h1 className="text-3xl font-bold text-slate-800">User Management</h1>
               <p className="text-slate-600 mt-1">Manage system access and team member profiles.</p>
             </div>
-            {hasPermission("user_create") && (
+            {(isHR() || isSuperAdmin()) && (
               <Link href="/users/create">
                 <button className="flex items-center justify-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl font-semibold hover:bg-violet-700 transition-all shadow-md">
                   <Plus className="w-5 h-5" />
@@ -223,8 +228,8 @@ export default function UsersPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'bg-slate-600 text-white shadow-md'
-                    : 'text-slate-600 hover:bg-slate-100'
+                    ? 'bg-violet-600 text-white shadow-md'
+                    : 'text-slate-600 hover:bg-violet-100'
                 }`}
               >
                 <tab.icon className="h-4 w-4" />
@@ -451,7 +456,7 @@ export default function UsersPage() {
                   <Loader2 className="h-8 w-8 animate-spin text-violet-500 mx-auto" />
                 </div>
               ) : filteredUsers.length === 0 ? (
-                <div className="text-center py-12 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/50">
+                <div className="text-center py-12 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/50 shadow-md">
                   <p className="text-slate-500">No users found matching your criteria.</p>
                 </div>
               ) : viewMode === 'grid' ? (
@@ -461,13 +466,18 @@ export default function UsersPage() {
                       key={user.id} 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="bg-white/70 backdrop-blur-md border border-white/50 rounded-2xl p-6 hover:shadow-lg transition-all"
+                      className="bg-white/70 backdrop-blur-md border border-white/50 rounded-2xl p-6 shadow-md hover:shadow-lg transition-all"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="relative">
-                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center text-lg font-bold text-white border border-violet-200 shadow-lg">
-                            {user.username.substring(0, 2).toUpperCase()}
-                          </div>
+                          <Avatar className="w-16 h-16 border-2 border-violet-200 shadow-lg">
+                            <AvatarImage src="" alt={user.username} />
+                            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-violet-600 text-white text-lg font-bold">
+                              {user.employeeResponseDto ? 
+                                `${user.employeeResponseDto.firstName.charAt(0)}${user.employeeResponseDto.lastName.charAt(0)}` :
+                                user.username.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
                         </div>
                         <button className="text-slate-500 hover:text-slate-700 transition">
@@ -475,7 +485,11 @@ export default function UsersPage() {
                         </button>
                       </div>
 
-                      <h3 className="font-semibold text-lg text-slate-800 mb-1">{user.username}</h3>
+                      <h3 className="font-semibold text-lg text-slate-800 mb-1">
+                        {user.employeeResponseDto ? 
+                          `${user.employeeResponseDto.firstName} ${user.employeeResponseDto.lastName}` : 
+                          user.username}
+                      </h3>
                       <p className="text-slate-600 text-sm mb-1">{user.roles.map(r => typeof r === 'string' ? r : r.name).join(', ')}</p>
                       <p className="text-slate-500 text-xs mb-4">ID: {user.id}</p>
 
@@ -484,6 +498,18 @@ export default function UsersPage() {
                           <Mail className="w-4 h-4" />
                           <span className="truncate">{user.email}</span>
                         </div>
+                        {user.employeeResponseDto?.phone && (
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <span className="w-4 h-4 flex items-center justify-center text-xs">📞</span>
+                            <span>{user.employeeResponseDto.phone}</span>
+                          </div>
+                        )}
+                        {user.employeeResponseDto?.joiningDate && (
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <span className="w-4 h-4 flex items-center justify-center text-xs">📅</span>
+                            <span>Joined {formatDate(user.employeeResponseDto.joiningDate)}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
@@ -498,12 +524,14 @@ export default function UsersPage() {
                   ))}
                 </div>
               ) : (
-                <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/50 overflow-hidden">
+                <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/50 overflow-hidden shadow-md">
                   <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">User</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Email</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Phone</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Joining Date</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Roles</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Status</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Actions</th>
@@ -520,14 +548,25 @@ export default function UsersPage() {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="relative">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center text-sm font-bold text-white border border-violet-200 shadow-sm">
-                                  {user.username.substring(0, 2).toUpperCase()}
-                                </div>
-                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+                                <Avatar className="w-10 h-10 border border-violet-200 shadow-sm">
+                                  <AvatarImage src="" alt={user.username} />
+                                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-violet-600 text-white text-sm font-bold">
+                                    {user.employeeResponseDto ? 
+                                      `${user.employeeResponseDto.firstName.charAt(0)}${user.employeeResponseDto.lastName.charAt(0)}` :
+                                      user.username.substring(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                                  user.enabled ? 'bg-green-400' : 'bg-red-400'
+                                }`}></div>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-slate-800">{user.username}</div>
-                                <div className="text-sm text-slate-500">ID: {user.id}</div>
+                                <div className="text-sm font-medium text-slate-800">
+                                  {user.employeeResponseDto ? 
+                                    `${user.employeeResponseDto.firstName} ${user.employeeResponseDto.lastName}` : 
+                                    user.username}
+                                </div>
+                                <div className="text-sm text-slate-500">@{user.username}</div>
                               </div>
                             </div>
                           </td>
@@ -538,11 +577,25 @@ export default function UsersPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-slate-600">{user.employeeResponseDto?.phone || '-'}</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-slate-600">
+                              {user.employeeResponseDto?.joiningDate ? 
+                                formatDate(user.employeeResponseDto.joiningDate) : 
+                                '-'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-sm text-slate-600">{user.roles.map(r => typeof r === 'string' ? r : r.name).join(', ')}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              Active
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.enabled 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {user.enabled ? 'Active' : 'Inactive'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -568,39 +621,39 @@ export default function UsersPage() {
               initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ delay: 0.6, duration: 0.6 }}
-              className="flex justify-center items-center mt-8"
+              className="mt-8 flex justify-start"
             >
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      href="#" 
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <PaginationItem key={page}>
-                      <PaginationLink 
-                        href="#" 
-                        isActive={currentPage === page}
-                        onClick={() => setCurrentPage(page)}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      href="#" 
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 text-sm bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Previous
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-2 text-sm border rounded-md transition ${
+                      currentPage === page 
+                        ? 'bg-violet-600 text-white border-violet-600' 
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 text-sm bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Next
+                </button>
+              </div>
             </motion.div>
 
           </motion.div>

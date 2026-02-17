@@ -11,6 +11,7 @@ import {
   Star, CalendarDays, MessageSquare as MsgSquare, Zap, Heart
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { formatDate } from "@/lib/dateUtils";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
@@ -131,13 +132,7 @@ function calculateDays(startDate: string, endDate: string, isHalfDay: boolean): 
   return isHalfDay ? 0.5 : diffDays;
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  });
-}
+// Local formatDate function removed - using imported formatDate from dateUtils
 
 // ============================================
 // MOCK DATA
@@ -458,18 +453,6 @@ export default function LeavePage() {
       } : l
     ));
   };
-
-  if (!hasPermission("view_attendance")) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-violet-100">
-        <div className="bg-white/80 backdrop-blur-md border border-violet-200 rounded-2xl p-8 text-center shadow-xl">
-          <XCircle className="h-16 w-16 text-violet-600 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold text-violet-900">Access Denied</h3>
-          <p className="text-violet-700 mt-2">You don't have permission to view leave management.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-violet-100">

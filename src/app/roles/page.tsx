@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "@/lib/api";
 import { Plus, Loader2, CheckSquare, Shield, ShieldAlert, MoreVertical, X, Search, Edit, Trash2, Users, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -176,10 +176,18 @@ export default function RolesPage() {
     }
   };
 
-  // Filter roles based on search
-  const filteredRoles = roles.filter(role => 
-    role.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter roles based on search (memoized for performance)
+  const filteredRoles = useMemo(() => 
+    roles.filter(role => 
+      role.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ), [roles, searchQuery]);
+
+  // Memoized stats calculations
+  const roleStats = useMemo(() => ({
+    totalRoles: roles.length,
+    totalPrivileges: privileges.length,
+    activeAssignments: roles.reduce((sum, role) => sum + (role.privileges?.length || 0), 0),
+  }), [roles, privileges]);
 
   if (!hasPermission("role_view")) {
     return (
@@ -235,18 +243,18 @@ export default function RolesPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white/70 backdrop-blur-md border border-white/50 rounded-xl p-4 shadow-md">
             <div className="text-sm text-slate-600 mb-1">Total Roles</div>
-            <div className="text-3xl font-bold text-violet-700">{roles.length}</div>
+            <div className="text-3xl font-bold text-violet-700">{roleStats.totalRoles}</div>
             <div className="text-xs text-slate-500 mt-1">System roles</div>
           </div>
           <div className="bg-white/70 backdrop-blur-md border border-white/50 rounded-xl p-4 shadow-md">
             <div className="text-sm text-slate-600 mb-1">Total Privileges</div>
-            <div className="text-3xl font-bold text-violet-600">{privileges.length}</div>
+            <div className="text-3xl font-bold text-violet-600">{roleStats.totalPrivileges}</div>
             <div className="text-xs text-violet-600 mt-1">Available permissions</div>
           </div>
           <div className="bg-white/70 backdrop-blur-md border border-white/50 rounded-xl p-4 shadow-md">
             <div className="text-sm text-slate-600 mb-1">Active Assignments</div>
             <div className="text-3xl font-bold text-violet-600">
-              {roles.reduce((sum, role) => sum + (role.privileges?.length || 0), 0)}
+              {roleStats.activeAssignments}
             </div>
             <div className="text-xs text-violet-600 mt-1">Role-privilege links</div>
           </div>
@@ -417,7 +425,12 @@ export default function RolesPage() {
                 <select
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                   value={assignState.roleId}
-                  onChange={(e) => setAssignState({ ...assignState, roleId: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const selectedRoleId = Number(e.target.value);
+                    const selectedRole = roles.find(r => r.id === selectedRoleId);
+                    const existingPrivileges = selectedRole?.privileges?.map(p => p.id) || [];
+                    setAssignState({ roleId: selectedRoleId, privilegeIds: existingPrivileges });
+                  }}
                 >
                   <option value={0}>Select role...</option>
                   {roles.map((r) => (

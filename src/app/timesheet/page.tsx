@@ -10,6 +10,7 @@ import {
   ChevronDown, ChevronUp, Eye, CheckSquare, XSquare, Users
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { formatDate, formatDateTime } from "@/lib/dateUtils";
 
 // ============================================
 // TYPE DEFINITIONS
@@ -146,7 +147,7 @@ function getStatusIcon(status: string) {
 // ============================================
 
 export default function TimesheetPage() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, user, isHR, isSuperAdmin, isManager, isRegularUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'my_timesheets' | 'team_timesheets' | 'approvals' | 'reports'>('my_timesheets');
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'list'>('week');
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -393,7 +394,7 @@ export default function TimesheetPage() {
     ));
   };
 
-  if (!hasPermission("view_attendance")) {
+  if (!hasPermission("view_timesheet")) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-violet-100">
         <div className="bg-white/80 backdrop-blur-md border border-violet-200 rounded-2xl p-8 text-center shadow-xl">
@@ -440,10 +441,10 @@ export default function TimesheetPage() {
         <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-2 border border-white/50 shadow-md mb-6">
           <div className="flex flex-wrap gap-2">
             {[
-              { id: 'my_timesheets', label: 'My Timesheets', icon: Clock },
-              { id: 'team_timesheets', label: 'Team Timesheets', icon: Users },
-              { id: 'approvals', label: 'Pending Approvals', icon: CheckSquare },
-              { id: 'reports', label: 'Reports & Analytics', icon: BarChart3 },
+              ...(isRegularUser() ? [{ id: 'my_timesheets', label: 'My Timesheets', icon: Clock }] : []),
+              ...(isManager() ? [{ id: 'team_timesheets', label: 'Team Timesheets', icon: Users }] : []),
+              ...(isHR() || isSuperAdmin() ? [{ id: 'approvals', label: 'Pending Approvals', icon: CheckSquare }] : []),
+              ...(isHR() || isSuperAdmin() ? [{ id: 'reports', label: 'Reports & Analytics', icon: BarChart3 }] : []),
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -700,7 +701,7 @@ export default function TimesheetPage() {
                           </div>
                           <div>
                             <h4 className="font-semibold text-slate-800">{entry.employeeName}</h4>
-                            <p className="text-sm text-slate-500">{entry.department} • Submitted {new Date(entry.submittedAt || '').toLocaleDateString()}</p>
+                            <p className="text-sm text-slate-500">{entry.department} • Submitted {formatDate(entry.submittedAt || '')}</p>
                           </div>
                         </div>
                         <span className="text-2xl font-bold text-violet-700">{formatHours(entry.hours)}</span>

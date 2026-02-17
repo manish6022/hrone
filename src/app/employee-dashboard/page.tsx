@@ -13,11 +13,16 @@ import {
   Factory,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  CalendarDays,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { EmployeeProfile } from "@/components/employee-profile";
+import { AttendanceCalendar } from "@/components/ui/attendance-calendar";
+import type { AttendanceRecord } from "@/components/ui/attendance-calendar";
+import { useRouter } from "next/navigation";
 
 interface DashboardStats {
   totalEmployees: number;
@@ -47,8 +52,16 @@ interface Holiday {
   type: "public" | "company";
 }
 
+interface ESSData {
+  leaveBalances: any[];
+  upcomingHolidays: any[];
+  monthlyAttendanceCount: number;
+  attendanceData?: Array<{ date: string; status: string }>;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -62,10 +75,15 @@ export default function Dashboard() {
     productionItems: 0,
     avgPerformance: 0,
   });
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [essData, setEssData] = useState<ESSData>({
+    leaveBalances: [],
+    upcomingHolidays: [],
+    monthlyAttendanceCount: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<Birthday[]>([]);
   const [currentBirthdayIndex, setCurrentBirthdayIndex] = useState(0);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [holidays, setHolidays] = useState<Holiday[]>([]);
 
   useEffect(() => {
@@ -74,6 +92,7 @@ export default function Dashboard() {
     const loadData = async () => {
       try {
         await fetchDashboardData(abortController.signal);
+        await fetchEssData(abortController.signal);
         fetchUpcomingBirthdays();
         fetchHolidays();
       } catch (error) {
@@ -92,63 +111,52 @@ export default function Dashboard() {
 
   const fetchDashboardData = async (signal?: AbortSignal) => {
     if (signal?.aborted) return;
-    
+
+    // Initialize with default values, will be updated when ESS data loads
+    setStats({
+      totalEmployees: 1, // Personal view - just the user
+      activeEmployees: 1,
+      onLeave: 0,
+      pendingLeave: 0,
+      todayAttendance: 1, // Will be updated with actual attendance
+      lateToday: 0,
+      avgWorkHours: "8.5h",
+      totalPayroll: 0,
+      pendingApprovals: 0,
+      productionItems: 0,
+      avgPerformance: 0,
+    });
+  };
+
+  const fetchEssData = async (signal?: AbortSignal) => {
+    if (!user?.id || signal?.aborted) return;
+
     try {
-      const usersResponse = await api.post("/user/all", {}, { signal });
-      if (signal?.aborted) return;
-      
-      const users = Array.isArray(usersResponse.data)
-        ? usersResponse.data
-        : usersResponse.data?.data || [];
+      const response = await api.get(`/api/ess/dashboard/${user.id}`, { signal });
+      if (response.data && response.data.data) {
+        const essData = response.data.data;
+        setEssData(essData);
 
-      setStats({
-        totalEmployees: users.length,
-        activeEmployees: Math.floor(users.length * 0.92),
-        onLeave: Math.floor(users.length * 0.05),
-        pendingLeave: 3,
-        todayAttendance: Math.floor(users.length * 0.88),
-        lateToday: Math.floor(users.length * 0.08),
-        avgWorkHours: "8.5h",
-        totalPayroll: 2450000,
-        pendingApprovals: 5,
-        productionItems: 12,
-        avgPerformance: 87.3,
-      });
-
-      setRecentActivities([
-        {
-          type: "leave",
-          user: "Sarah Connor",
-          action: "applied for leave",
-          time: "5 mins ago",
-          icon: Calendar,
-        },
-        {
-          type: "attendance",
-          user: "John Doe",
-          action: "marked attendance",
-          time: "15 mins ago",
-          icon: CheckCircle,
-        },
-        {
-          type: "production",
-          user: "Mike Ross",
-          action: "logged production",
-          time: "1 hour ago",
-          icon: Factory,
-        },
-        {
-          type: "payroll",
-          user: "System",
-          action: "processed payroll",
-          time: "2 hours ago",
-          icon: DollarSign,
-        },
-      ]);
-    } catch (error) {
-      if (error instanceof Error && error.name !== 'AbortError' && error.message !== 'canceled') {
-        console.error("Failed to fetch dashboard data", error);
+        // Update personal stats based on ESS data
+        if (essData.monthlyAttendanceCount !== undefined) {
+          setStats(prev => ({
+            ...prev,
+            todayAttendance: essData.monthlyAttendanceCount || 1, // Use monthly count as daily attendance indicator
+            avgPerformance: 95, // Personal performance
+          }));
+        }
       }
+    } catch (err: any) {
+      // Properly handle CanceledError (AbortError)
+      if (err.name === 'AbortError' || err.message === 'canceled' || err.code === 'ERR_CANCELED') {
+        // Request was canceled, this is expected behavior
+        console.log('ESS data fetch was canceled - component unmounted');
+        return;
+      }
+      
+      console.error("Failed to fetch ESS data", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -189,60 +197,6 @@ export default function Dashboard() {
     if (hour < 12) return "Good morning";
     if (hour < 17) return "Good afternoon";
     return "Good evening";
-  };
-
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(currentMonth);
-    const firstDay = getFirstDayOfMonth(currentMonth);
-    const days = [];
-    const today = new Date().getDate();
-    const isCurrentMonth =
-      currentMonth.getMonth() === new Date().getMonth() &&
-      currentMonth.getFullYear() === new Date().getFullYear();
-
-    // Empty cells for days before month starts
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-12" />);
-    }
-
-    // Days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const holiday = holidays.find((h) => h.date === day);
-      const isToday = isCurrentMonth && day === today;
-
-      days.push(
-        <motion.div
-          key={day}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: day * 0.01, duration: 0.2 }}
-          className={cn(
-            "h-12 flex flex-col items-center justify-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative",
-            isToday && "bg-[#2D2D2D] text-white shadow-lg",
-            !isToday &&
-              holiday &&
-              "bg-red-50 text-red-600 border border-red-200",
-            !isToday && !holiday && "hover:bg-[#E8E2D5] text-[#2D2D2D]"
-          )}
-          whileHover={{ scale: 1.05 }}
-        >
-          <span>{day}</span>
-          {holiday && (
-            <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
-          )}
-        </motion.div>
-      );
-    }
-
-    return days;
   };
 
   const handleNextBirthday = () => {
@@ -321,7 +275,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="space-y-8 pb-8 relative min-h-screen">
+    <div className="space-y-8 pb-8 relative overflow-hidden overflow-x-hidden">
       {/* Beautiful Background Elements */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-violet-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
@@ -336,6 +290,7 @@ export default function Dashboard() {
           }}></div>
         </div>
       </div>
+
       {/* Greeting Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-linear-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
         <div className="space-y-2">
@@ -367,83 +322,85 @@ export default function Dashboard() {
 
       {/* Enhanced Stats Grid with Glassmorphism */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div
+          onClick={() => router.push('/employee-dashboard/attendance')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="cursor-pointer"
+        >
+          <StatCard
+            title="Monthly Attendance"
+            value={essData.monthlyAttendanceCount}
+            change="Days Present"
+            icon={Clock}
+            color="bg-blue-500 text-white shadow-blue-500/50"
+            gradient="bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-blue-200"
+            delay={0.1}
+          />
+        </motion.div>
         <StatCard
-          title="Total Employees"
-          value={stats.totalEmployees}
-          change={`${stats.activeEmployees} active`}
-          icon={Users}
-          color="bg-blue-500 text-white shadow-blue-500/50"
-          gradient="bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-blue-200"
-          delay={0.1}
-        />
-        <StatCard
-          title="Today's Attendance"
-          value={`${stats.todayAttendance}/${stats.totalEmployees}`}
-          change={`${stats.lateToday} late arrivals`}
-          icon={CheckCircle}
+          title="Leave Types"
+          value={3}
+          change="Active Types"
+          icon={Calendar}
           color="bg-emerald-500 text-white shadow-emerald-500/50"
           gradient="bg-gradient-to-br from-emerald-50 via-white to-green-50 border-emerald-200"
           delay={0.2}
         />
         <StatCard
-          title="Pending Approvals"
-          value={stats.pendingApprovals}
-          change="Requires attention"
-          icon={AlertCircle}
+          title="Upcoming Holidays"
+          value={5}
+          change="This Year"
+          icon={CalendarDays}
           color="bg-orange-500 text-white shadow-orange-500/50"
           gradient="bg-gradient-to-br from-orange-50 via-white to-amber-50 border-orange-200"
           delay={0.3}
         />
         <StatCard
-          title="Avg Performance"
-          value={`${stats.avgPerformance}%`}
-          change="+2.3% from last month"
-          icon={TrendingUp}
+          title="Leave Balance"
+          value={15}
+          change="Total Days"
+          icon={Package}
           color="bg-purple-500 text-white shadow-purple-500/50"
           gradient="bg-gradient-to-br from-purple-50 via-white to-pink-50 border-purple-200"
           delay={0.4}
         />
       </div>
 
-      {/* Enhanced Birthday & Calendar Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {/* Enhanced Birthday & Calendar Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full items-stretch">
         {/* Enhanced Employee Birthday Card with Glassmorphism */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="relative w-full h-[500px] group"
+          className="relative w-full min-h-[500px] h-full group" // CHANGED: Added w-full and h-full
         >
           {/* Birthday Card Stack */}
           {upcomingBirthdays.length > 0 && (
-            <div className="relative h-full">
+            <div className="relative h-full w-full"> {/* CHANGED: Added w-full */}
               {upcomingBirthdays.map((birthday, index) => {
                 const offset = index - currentBirthdayIndex;
                 const isActive = index === currentBirthdayIndex;
+
+                // Only render active, previous, and next cards to save resources
+                if (Math.abs(offset) > 1) return null; 
 
                 return (
                   <motion.div
                     key={birthday.id}
                     initial={false}
                     animate={{
-                      x: offset * 20,
-                      y: offset * 20,
-                      scale: isActive ? 1 : 0.95 - Math.abs(offset) * 0.05,
-                      opacity:
-                        Math.abs(offset) > 2 ? 0 : 1 - Math.abs(offset) * 0.3,
-                      zIndex: upcomingBirthdays.length - Math.abs(offset),
+                      x: isActive ? 0 : offset * 40, // Adjusted offset logic
+                      scale: isActive ? 1 : 0.9,
+                      opacity: isActive ? 1 : 0,
+                      zIndex: isActive ? 10 : 0,
                     }}
                     transition={{ 
                       duration: 0.4, 
                       ease: "easeInOut",
-                      x: { type: "spring", stiffness: 300, damping: 30 },
-                      y: { type: "spring", stiffness: 300, damping: 30 },
-                      scale: { type: "spring", stiffness: 300, damping: 30 },
                     }}
-                    className={cn(
-                      "absolute inset-0 rounded-3xl border-2 shadow-xl overflow-hidden",
-                      isActive ? "border-[#D4CEC1]" : "border-[#E8E2D5]"
-                    )}
+                    className="absolute inset-0 w-full h-full" // CHANGED: Ensure wrapper fills container
                     style={{
                       pointerEvents: isActive ? "auto" : "none",
                     }}
@@ -459,6 +416,7 @@ export default function Dashboard() {
                       onPrev={handlePrevBirthday}
                       currentIndex={currentBirthdayIndex}
                       totalCount={upcomingBirthdays.length}
+                      className="w-full h-full" // Explicitly passing full size
                     />
                   </motion.div>
                 );
@@ -467,189 +425,19 @@ export default function Dashboard() {
           )}
         </motion.div>
 
-        {/* Enhanced Calendar with Glassmorphism */}
+        {/* Calendar View */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="relative overflow-hidden group"
+          transition={{ delay: 0.2, duration: 0.6 }}
+          className="relative w-full min-h-[500px] h-full" // CHANGED: Added h-full to match neighbor
         >
-          <div className="bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 rounded-3xl p-8 border border-purple-200/50 backdrop-blur-sm hover:shadow-2xl transition-all duration-300">
-            {/* Decorative Background Elements */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-400/5 via-transparent to-pink-400/5"></div>
-            <motion.div
-              animate={{ rotate: 180 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"
-            />
-            
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-[#2D2D2D]">
-              {currentMonth.toLocaleDateString("en-US", {
-                month: "long",
-                year: "numeric",
-              })}
-            </h3>
-            <div className="flex items-center gap-2">
-              <motion.button
-                onClick={() =>
-                  setCurrentMonth(
-                    new Date(
-                      currentMonth.getFullYear(),
-                      currentMonth.getMonth() - 1
-                    )
-                  )
-                }
-                className="p-2 rounded-xl hover:bg-[#E8E2D5] transition-colors"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <ChevronLeft className="h-5 w-5 text-[#6B6B6B]" />
-              </motion.button>
-              <motion.button
-                onClick={() =>
-                  setCurrentMonth(
-                    new Date(
-                      currentMonth.getFullYear(),
-                      currentMonth.getMonth() + 1
-                    )
-                  )
-                }
-                className="p-2 rounded-xl hover:bg-[#E8E2D5] transition-colors"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <ChevronRight className="h-5 w-5 text-[#6B6B6B]" />
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Weekday Headers */}
-          <div className="grid grid-cols-7 gap-2 mb-2">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div
-                key={day}
-                className="text-center text-xs font-semibold text-[#6B6B6B] uppercase"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-2">{renderCalendar()}</div>
-
-          {/* Holiday Legend */}
-          {holidays.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-[#E8E2D5]">
-              <p className="text-xs font-semibold text-[#6B6B6B] uppercase mb-3">
-                Holidays
-              </p>
-              <div className="space-y-2">
-                {holidays.map((holiday, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                    <span className="font-medium text-[#2D2D2D]">
-                      {holiday.name}
-                    </span>
-                    <span className="text-xs text-[#6B6B6B]">
-                      - {holiday.date}{" "}
-                      {currentMonth.toLocaleDateString("en-US", {
-                        month: "short",
-                      })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          </div>
-        </div>
+          <AttendanceCalendar
+            attendanceData={(essData.attendanceData || []) as AttendanceRecord[]}
+            holidays={essData.upcomingHolidays || []}
+          />
         </motion.div>
       </div>
-
-      {/* Main Content Grid */}
-      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"> */}
-        {/* Enhanced Recent Activity with Glassmorphism */}
-        {/* <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="lg:col-span-2 relative group"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 rounded-3xl"></div>
-          <div className="relative bg-white/60 backdrop-blur-md rounded-3xl p-8 border border-blue-200/50 hover:shadow-2xl transition-all duration-300">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="flex items-center justify-between mb-6"
-            >
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Recent Activity
-              </h3>
-              <motion.div
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-3 h-3 bg-green-500 rounded-full"
-              />
-            </motion.div>
-            
-            <div className="space-y-3">
-              {recentActivities.map((activity, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1, duration: 0.4 }}
-                  whileHover={{ 
-                    x: 5, 
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    transition: { duration: 0.2 }
-                  }}
-                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/50 border border-gray-200/50 cursor-pointer"
-                >
-                  <motion.div 
-                    className={cn(
-                      "p-3 rounded-xl shadow-lg",
-                      activity.type === 'leave' ? "bg-amber-100 text-amber-600" :
-                      activity.type === 'attendance' ? "bg-emerald-100 text-emerald-600" :
-                      activity.type === 'production' ? "bg-blue-100 text-blue-600" :
-                      "bg-purple-100 text-purple-600"
-                    )}
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                  >
-                    <activity.icon className="h-5 w-5" />
-                  </motion.div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {activity.user}{" "}
-                      <span className="font-normal text-gray-600">
-                        {activity.action}
-                      </span>
-                    </p>
-                    <motion.p 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
-                      className="text-xs text-gray-500"
-                    >
-                      {activity.time}
-                    </motion.p>
-                  </div>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.7 + index * 0.1, duration: 0.3 }}
-                    className="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
-                  />
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      </div> */}
 
       {/* Enhanced Additional Stats with Glassmorphism */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -659,10 +447,10 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.6 }}
           whileHover={{ y: -5, scale: 1.02 }}
-          className="relative group"
+          className="relative group h-full"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 via-transparent to-green-400/20 rounded-3xl"></div>
-          <div className="relative bg-gradient-to-br from-emerald-50/80 via-white to-green-50/80 backdrop-blur-sm rounded-3xl p-8 border border-emerald-200/50 hover:shadow-2xl transition-all duration-300">
+          <div className="relative h-full flex flex-col bg-gradient-to-br from-emerald-50/80 via-white to-green-50/80 backdrop-blur-sm rounded-3xl p-8 border border-emerald-200/50 hover:shadow-2xl transition-all duration-300">
             <motion.div 
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -681,21 +469,21 @@ export default function Dashboard() {
               </motion.div>
             </motion.div>
             
-            <div className="space-y-4">
+            <div className="space-y-4 flex-grow">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.9, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">On Leave Today</span>
+                <span className="text-sm font-medium text-gray-700">Total Leave Balance</span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.0, duration: 0.3 }}
                   className="text-2xl font-bold text-emerald-700"
                 >
-                  {stats.onLeave}
+                  0
                 </motion.span>
               </motion.div>
               <motion.div
@@ -704,63 +492,63 @@ export default function Dashboard() {
                 transition={{ delay: 1.1, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">Pending Requests</span>
+                <span className="text-sm font-medium text-gray-700">Active Leave Types</span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.2, duration: 0.3 }}
-                  className="text-2xl font-bold text-amber-600"
+                  className="text-2xl font-bold text-blue-600"
                 >
-                  {stats.pendingLeave}
+                  0
                 </motion.span>
               </motion.div>
             </div>
           </div>
         </motion.div>
 
-        {/* Production Card */}
+        {/* Holiday Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.6 }}
           whileHover={{ y: -5, scale: 1.02 }}
-          className="relative group"
+          className="relative group h-full"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-transparent to-indigo-400/20 rounded-3xl"></div>
-          <div className="relative bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/80 backdrop-blur-sm rounded-3xl p-8 border border-blue-200/50 hover:shadow-2xl transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 via-transparent to-pink-400/20 rounded-3xl"></div>
+          <div className="relative h-full flex flex-col bg-gradient-to-br from-purple-50/80 via-white to-pink-50/80 backdrop-blur-sm rounded-3xl p-8 border border-purple-200/50 hover:shadow-2xl transition-all duration-300">
             <motion.div 
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.9, duration: 0.4 }}
               className="flex items-center justify-between mb-6"
             >
-              <h4 className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
-                Production
+              <h4 className="text-lg font-bold bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent">
+                Holiday Information
               </h4>
               <motion.div
-                animate={{ rotate: [0, -10, 10, 0] }}
-                transition={{ duration: 3.5, repeat: Infinity }}
-                className="p-2 rounded-xl bg-blue-100 text-blue-600 shadow-lg"
+                animate={{ rotate: [0, 15, -15, 0] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="p-2 rounded-xl bg-purple-100 text-purple-600 shadow-lg"
               >
-                <Package className="h-5 w-5" />
+                <TrendingUp className="h-5 w-5" />
               </motion.div>
             </motion.div>
             
-            <div className="space-y-4">
+            <div className="space-y-4 flex-grow">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.0, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">Active Items</span>
+                <span className="text-sm font-medium text-gray-700">Upcoming Holidays</span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.1, duration: 0.3 }}
-                  className="text-2xl font-bold text-blue-700"
+                  className="text-2xl font-bold text-purple-700"
                 >
-                  {stats.productionItems}
+                  {holidays.length}
                 </motion.span>
               </motion.div>
               <motion.div
@@ -769,67 +557,65 @@ export default function Dashboard() {
                 transition={{ delay: 1.2, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">Today's Entries</span>
+                <span className="text-sm font-medium text-gray-700">Next Holiday</span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.3, duration: 0.3 }}
-                  className="text-2xl font-bold text-indigo-600"
+                  className="text-sm font-bold text-pink-600"
                 >
-                  24
+                  {holidays.length > 0 ? 
+                    new Date(holidays[0].date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) 
+                    : "N/A"}
                 </motion.span>
               </motion.div>
             </div>
           </div>
         </motion.div>
 
-        {/* Payroll Card */}
+        {/* Attendance Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9, duration: 0.6 }}
           whileHover={{ y: -5, scale: 1.02 }}
-          className="relative group"
+          className="relative group h-full"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 via-transparent to-orange-400/20 rounded-3xl"></div>
-          <div className="relative bg-gradient-to-br from-amber-50/80 via-white to-orange-50/80 backdrop-blur-sm rounded-3xl p-8 border border-amber-200/50 hover:shadow-2xl transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-transparent to-indigo-400/20 rounded-3xl"></div>
+          <div className="relative h-full flex flex-col bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/80 backdrop-blur-sm rounded-3xl p-8 border border-blue-200/50 hover:shadow-2xl transition-all duration-300">
             <motion.div 
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1.0, duration: 0.4 }}
               className="flex items-center justify-between mb-6"
             >
-              <h4 className="text-lg font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
-                Payroll
+              <h4 className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                Attendance Summary
               </h4>
               <motion.div
-                animate={{ rotate: [0, 15, -15, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="p-2 rounded-xl bg-amber-100 text-amber-600 shadow-lg"
+                animate={{ rotate: [0, -10, 10, 0] }}
+                transition={{ duration: 3.5, repeat: Infinity }}
+                className="p-2 rounded-xl bg-blue-100 text-blue-600 shadow-lg"
               >
-                <DollarSign className="h-5 w-5" />
+                <CheckCircle className="h-5 w-5" />
               </motion.div>
             </motion.div>
             
-            <div className="space-y-4">
+            <div className="space-y-4 flex-grow">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.1, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">This Month</span>
+                <span className="text-sm font-medium text-gray-700">Monthly Attendance</span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.2, duration: 0.3 }}
-                  className="text-xl font-bold text-amber-700"
+                  className="text-2xl font-bold text-blue-700"
                 >
-                  {new Intl.NumberFormat("en-IN", {
-                    style: "currency",
-                    currency: "INR",
-                    notation: "compact",
-                  }).format(stats.totalPayroll)}
+                  {stats.todayAttendance}
                 </motion.span>
               </motion.div>
               <motion.div
@@ -838,14 +624,14 @@ export default function Dashboard() {
                 transition={{ delay: 1.3, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">Processed</span>
+                <span className="text-sm font-medium text-gray-700">Attendance Rate</span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.4, duration: 0.3 }}
-                  className="text-2xl font-bold text-orange-600"
+                  className="text-2xl font-bold text-indigo-600"
                 >
-                  95%
+                  {Math.round((stats.todayAttendance / stats.totalEmployees) * 100)}%
                 </motion.span>
               </motion.div>
             </div>

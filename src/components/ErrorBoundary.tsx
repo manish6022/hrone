@@ -25,16 +25,37 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log error securely - never expose sensitive information
+    const errorDetails = {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      timestamp: new Date().toISOString(),
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server',
+      url: typeof window !== 'undefined' ? window.location.href : 'server',
+    }
+
+    // In production, send to error reporting service (not console)
+    if (process.env.NODE_ENV === 'production') {
+      // Example: sendToErrorReportingService(errorDetails)
+      console.error('Production error logged securely:', {
+        message: error.message,
+        timestamp: errorDetails.timestamp,
+        url: errorDetails.url
+      })
+    } else {
+      // Development: log full details
+      console.error('ErrorBoundary caught an error:', errorDetails)
+    }
+
     this.setState({
       error,
       errorInfo
-    });
-    
-    // Log error to console or error reporting service
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
-    // In production, you might want to send this to an error reporting service
-    // logErrorToService(error, errorInfo);
+    })
+
+    // Optional: Send to analytics/monitoring service
+    // analytics.track('error', { error: error.message, url: window.location.href })
   }
 
   handleReset = () => {

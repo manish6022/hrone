@@ -22,58 +22,23 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
+// import { useTheme } from "@/context/ThemeContext";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Logo } from "@/components/ui/logo";
 import { useState } from 'react';
-
-const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Users", href: "/users", icon: Users, permission: "view_users" },
-  { name: "Timesheet", href: "/timesheet", icon: FileText, permission: "view_attendance" },
-  { name: "Roles", href: "/roles", icon: Shield, permission: "role_view" },
-  {
-    name: "Privileges",
-    href: "/privileges",
-    icon: Key,
-    permission: "privilege_view",
-  },
-  {
-    name: "Leave Types",
-    href: "/leave-types",
-    icon: Calendar,
-    permission: "leave_type_view",
-  },
-  // {
-  //   name: "Apply Leave",
-  //   href: "/leave-application",
-  //   icon: FileText,
-  //   permission: "leave_apply",
-  // },
-  {
-    name: "Item Master",
-    href: "/items",
-    icon: Package,
-    permission: "item_view",
-  },
-  {
-    name: "Production",
-    href: "/production",
-    icon: Factory,
-    permission: "production_view",
-  },
-  {
-    name: "UI Showcase",
-    href: "/ui-showcase",
-    icon: Palette,
-  },
-];
+import { useTheme } from "next-themes";
+import { getNavigation } from "@/data/navigation";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout, hasPermission, isSuperAdmin } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { user, logout, hasPermission, isSuperAdmin, isRegularUser } = useAuth();
+  // const { theme, toggleTheme } = useTheme();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const filteredNavigation = navigation.filter((item) => {
+  console.log('Sidebar - User data:', { roles: user?.roles, isSuperAdmin: user?.isSuperAdmin });
+  const allNavigation = getNavigation(isRegularUser());
+
+  const filteredNavigation = allNavigation.filter((item) => {
     if (!item.permission) return true;
     return hasPermission(item.permission);
   });
@@ -98,39 +63,10 @@ export function Sidebar() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 300 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden fixed top-0 right-0 z-40 h-full w-64 bg-background border-l border-border shadow-xl"
+            className="md:hidden fixed top-0 right-0 z-40 h-full w-80 bg-background border-l border-border shadow-xl"
           >
             <div className="flex h-20 items-center justify-between px-6 border-b border-border shrink-0">
-              <motion.div
-                className="flex items-center gap-3"
-                whileHover={{ scale: 1.02 }}
-              >
-                <motion.div
-                  className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/30"
-                  whileHover={{ rotate: 360 }}
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                >
-                  <span className="text-primary-foreground font-bold">H</span>
-                </motion.div>
-                <div>
-                  <h1 className="text-xl font-bold text-foreground tracking-tight">
-                    HROne
-                  </h1>
-                  <AnimatePresence>
-                    {isSuperAdmin() && (
-                      <motion.span
-                        className="text-[10px] text-primary font-bold uppercase tracking-widest leading-none block"
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        God Mode
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
+              <Logo showGodMode={isSuperAdmin()} size="md" />
               <div className="flex flex-col min-w-0">
                 <p className="font-semibold text-foreground text-sm truncate">
                   {user?.username || (user as any)?.name || "User"}
@@ -210,53 +146,13 @@ export function Sidebar() {
         initial={{ x: -300, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-        className="hidden md:flex flex-col w-64 fixed left-4 top-4 bottom-4 z-20 bg-background border border-border rounded-3xl shadow-xl overflow-hidden"
+        className="hidden md:flex flex-col w-72 fixed left-4 top-4 bottom-4 z-20 bg-background border border-border rounded-3xl shadow-xl overflow-hidden"
       >
         <div className="flex h-20 items-center justify-between px-6 border-b border-border shrink-0">
-          <motion.div
-            className="flex items-center gap-3"
-            whileHover={{ scale: 1.02 }}
-          >
-            <motion.div
-              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/30"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6, ease: "easeInOut" }}
-            >
-              <span className="text-primary-foreground font-bold">H</span>
-            </motion.div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground tracking-tight">
-                HROne
-              </h1>
-              <AnimatePresence>
-                {isSuperAdmin() && (
-                  <motion.span
-                    className="text-[10px] text-primary font-bold uppercase tracking-widest leading-none block"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    God Mode
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
+          <Logo showGodMode={isSuperAdmin()} size="md" />
 
           {/* Theme Toggle Button */}
-          <motion.button
-            onClick={toggleTheme}
-            className="group relative p-2.5 rounded-xl text-muted-foreground hover:text-foreground transition-all duration-300 hover:bg-muted"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {theme === "light" ? (
-              <Moon className="h-5 w-5 transition-transform group-hover:scale-110" />
-            ) : (
-              <Sun className="h-5 w-5 transition-transform group-hover:scale-110" />
-            )}
-          </motion.button>
+          <ThemeToggle size="md" variant="ghost" />
         </div>
 
         <div className="flex-1 overflow-y-auto py-8">
@@ -307,12 +203,12 @@ export function Sidebar() {
 
         <div className="border-t border-border p-6 space-y-4 shrink-0">
           <motion.div
-            className="flex items-center gap-3 p-3 rounded-2xl bg-muted border border-border"
+            className="flex items-center gap-4 p-4 rounded-2xl bg-muted border border-border"
             whileHover={{ scale: 1.02, y: -2 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
             <motion.div
-              className="h-11 w-11 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/10 border border-border"
+              className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/10 border border-border"
               whileHover={{ rotate: 10 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
