@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [mounted, setMounted] = useState(false);
   const [attemptsLeft, setAttemptsLeft] = useState(5);
   const { login } = useAuth();
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
 
   // Rate limiter for login attempts (5 attempts per 15 minutes)
   const rateLimiter = new RateLimiter(5, 15 * 60 * 1000);
@@ -130,7 +130,7 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
               >
-                <Logo size="lg" showGodMode={false} showCompanyName={true} />
+                {resolvedTheme && <Logo size="lg" showGodMode={false} showCompanyName={true} />}
               </motion.div>
 
               <motion.h1

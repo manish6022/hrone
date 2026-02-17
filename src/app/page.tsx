@@ -18,6 +18,8 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { EmployeeProfile } from "@/components/employee-profile";
+import { AttendanceCalendar } from "@/components/ui/attendance-calendar";
+import type { AttendanceRecord } from "@/components/ui/attendance-calendar";
 
 interface DashboardStats {
   totalEmployees: number;
@@ -405,45 +407,40 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Enhanced Birthday & Calendar Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {/* Enhanced Birthday & Calendar Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full items-stretch">
         {/* Enhanced Employee Birthday Card with Glassmorphism */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="relative w-full h-[500px] group"
+          className="relative w-full min-h-[500px] h-full group" // CHANGED: Added w-full and h-full
         >
           {/* Birthday Card Stack */}
           {upcomingBirthdays.length > 0 && (
-            <div className="relative h-full">
+            <div className="relative h-full w-full"> {/* CHANGED: Added w-full */}
               {upcomingBirthdays.map((birthday, index) => {
                 const offset = index - currentBirthdayIndex;
                 const isActive = index === currentBirthdayIndex;
+
+                // Only render active, previous, and next cards to save resources
+                if (Math.abs(offset) > 1) return null;
 
                 return (
                   <motion.div
                     key={birthday.id}
                     initial={false}
                     animate={{
-                      x: offset * 20,
-                      y: offset * 20,
-                      scale: isActive ? 1 : 0.95 - Math.abs(offset) * 0.05,
-                      opacity:
-                        Math.abs(offset) > 2 ? 0 : 1 - Math.abs(offset) * 0.3,
-                      zIndex: upcomingBirthdays.length - Math.abs(offset),
+                      x: isActive ? 0 : offset * 40, // Adjusted offset logic
+                      scale: isActive ? 1 : 0.9,
+                      opacity: isActive ? 1 : 0,
+                      zIndex: isActive ? 10 : 0,
                     }}
-                    transition={{ 
-                      duration: 0.4, 
+                    transition={{
+                      duration: 0.4,
                       ease: "easeInOut",
-                      x: { type: "spring", stiffness: 300, damping: 30 },
-                      y: { type: "spring", stiffness: 300, damping: 30 },
-                      scale: { type: "spring", stiffness: 300, damping: 30 },
                     }}
-                    className={cn(
-                      "absolute inset-0 rounded-3xl border-2 shadow-xl overflow-hidden",
-                      isActive ? "border-[#D4CEC1]" : "border-[#E8E2D5]"
-                    )}
+                    className="absolute inset-0 w-full h-full" // CHANGED: Ensure wrapper fills container
                     style={{
                       pointerEvents: isActive ? "auto" : "none",
                     }}
@@ -459,6 +456,7 @@ export default function Dashboard() {
                       onPrev={handlePrevBirthday}
                       currentIndex={currentBirthdayIndex}
                       totalCount={upcomingBirthdays.length}
+                      className="w-full h-full" // Explicitly passing full size
                     />
                   </motion.div>
                 );
@@ -467,105 +465,17 @@ export default function Dashboard() {
           )}
         </motion.div>
 
-        {/* Enhanced Calendar with Glassmorphism */}
+        {/* Calendar View */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="relative overflow-hidden group"
+          transition={{ delay: 0.2, duration: 0.6 }}
+          className="relative w-full min-h-[500px] h-full" // CHANGED: Added h-full to match neighbor
         >
-          <div className="bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 rounded-3xl p-8 border border-purple-200/50 backdrop-blur-sm hover:shadow-2xl transition-all duration-300">
-            {/* Decorative Background Elements */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-400/5 via-transparent to-pink-400/5"></div>
-            <motion.div
-              animate={{ rotate: 180 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"
-            />
-            
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-[#2D2D2D]">
-              {currentMonth.toLocaleDateString("en-US", {
-                month: "long",
-                year: "numeric",
-              })}
-            </h3>
-            <div className="flex items-center gap-2">
-              <motion.button
-                onClick={() =>
-                  setCurrentMonth(
-                    new Date(
-                      currentMonth.getFullYear(),
-                      currentMonth.getMonth() - 1
-                    )
-                  )
-                }
-                className="p-2 rounded-xl hover:bg-[#E8E2D5] transition-colors"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <ChevronLeft className="h-5 w-5 text-[#6B6B6B]" />
-              </motion.button>
-              <motion.button
-                onClick={() =>
-                  setCurrentMonth(
-                    new Date(
-                      currentMonth.getFullYear(),
-                      currentMonth.getMonth() + 1
-                    )
-                  )
-                }
-                className="p-2 rounded-xl hover:bg-[#E8E2D5] transition-colors"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <ChevronRight className="h-5 w-5 text-[#6B6B6B]" />
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Weekday Headers */}
-          <div className="grid grid-cols-7 gap-2 mb-2">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div
-                key={day}
-                className="text-center text-xs font-semibold text-[#6B6B6B] uppercase"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-2">{renderCalendar()}</div>
-
-          {/* Holiday Legend */}
-          {holidays.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-[#E8E2D5]">
-              <p className="text-xs font-semibold text-[#6B6B6B] uppercase mb-3">
-                Holidays
-              </p>
-              <div className="space-y-2">
-                {holidays.map((holiday, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                    <span className="font-medium text-[#2D2D2D]">
-                      {holiday.name}
-                    </span>
-                    <span className="text-xs text-[#6B6B6B]">
-                      - {holiday.date}{" "}
-                      {currentMonth.toLocaleDateString("en-US", {
-                        month: "short",
-                      })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          </div>
-        </div>
+          <AttendanceCalendar
+            attendanceData={[]} // Empty array for main dashboard
+            holidays={holidays}
+          />
         </motion.div>
       </div>
 
