@@ -44,17 +44,17 @@ const nextConfig: NextConfig = {
     ]
   },
 
-  // Redirect HTTP to HTTPS
-  async redirects() {
-    return [
-      {
-        source: '/:path*',
-        destination: 'https://:host/:path*',
-        permanent: true,
-        has: [{ type: 'header', key: 'x-forwarded-proto', value: 'http' }]
-      }
-    ]
-  },
+  // Remove HTTP to HTTPS redirect - handle this at deployment level (Vercel/Netlify automatically handle HTTPS)
+  // async redirects() {
+  //   return [
+  //     {
+  //       source: '/:path*',
+  //       destination: 'https://:host/:path*',
+  //       permanent: true,
+  //       has: [{ type: 'header', key: 'x-forwarded-proto', value: 'http' }]
+  //     }
+  //   ]
+  // },
 
   // Remove X-Powered-By header for security
   poweredByHeader: false,
