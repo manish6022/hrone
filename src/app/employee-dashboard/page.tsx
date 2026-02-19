@@ -298,7 +298,7 @@ export default function Dashboard() {
             {greeting}, {user?.username || (user as any)?.name || "User"}!
           </h2>
           <p className="text-sm text-gray-600 leading-relaxed">
-            Here's your HROne overview for today
+            Here's your Pammi Greenland overview for today
           </p>
         </div>
         <div className="flex items-center gap-4">

@@ -8,7 +8,6 @@ import {
   Clock,
   FileText,
   Calendar,
-  Palette,
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -57,11 +56,6 @@ const baseNavigation: NavigationItem[] = [
     href: "/production",
     icon: Factory,
     permission: "production_view",
-  },
-  {
-    name: "UI Showcase",
-    href: "/ui-showcase",
-    icon: Palette,
   },
 ];
 

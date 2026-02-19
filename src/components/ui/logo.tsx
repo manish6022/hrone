@@ -9,6 +9,8 @@ interface LogoProps {
   showCompanyName?: boolean;
   className?: string;
   isInteractive?: boolean;
+  iconText?: string;
+  companyName?: string;
 }
 
 export function Logo({
@@ -16,7 +18,9 @@ export function Logo({
   size = "md",
   showCompanyName = true,
   className,
-  isInteractive = true
+  isInteractive = true,
+  iconText = "P",
+  companyName = "Pammi Greenland"
 }: LogoProps) {
   const sizeClasses = {
     sm: { container: "gap-2", icon: "h-8 w-8", text: "text-lg" },
@@ -58,21 +62,21 @@ export function Logo({
   return (
     <div className={cn("flex items-center justify-center", sizes.container, className)}>
       <LogoIcon {...iconProps}>
-        <span className="text-primary-foreground font-bold">H</span>
+        <span className="text-primary-foreground font-bold">{iconText}</span>
       </LogoIcon>
 
       {showCompanyName && (
         <LogoText {...textProps}>
           <h1 className={cn("font-bold text-foreground tracking-tight", sizes.text)}>
-            HROne
+            {companyName}
           </h1>
-          <AnimatePresence>
+          {/* <AnimatePresence>
             {showGodMode && (
               <GodModeBadge {...godModeProps}>
                 God Mode
               </GodModeBadge>
             )}
-          </AnimatePresence>
+          </AnimatePresence> */}
         </LogoText>
       )}
     </div>

@@ -1,8 +1,8 @@
-# HROne Theme System Guide
+# Pammi Greenland Theme System Guide
 
 ## Overview
 
-The HROne application uses a centralized theme system where all colors, spacing, typography, and design tokens are defined in a single file: `src/styles/theme.css`
+The Pammi Greenland application uses a centralized theme system where all colors, spacing, typography, and design tokens are defined in a single file: `src/styles/theme.css`
 
 ## How to Change Colors
 

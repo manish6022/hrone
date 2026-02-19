@@ -154,7 +154,7 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                Sign in to your HROne account
+                Sign in to your Pammi Greenland account
               </motion.p>
             </div>
 
@@ -332,7 +332,7 @@ export default function LoginPage() {
                 "text-xs font-medium",
                 theme === 'dark' ? "text-slate-400" : "text-gray-500"
               )}>
-                Powered by HROne Enterprise
+                Powered by Pammi Greenland Enterprise
               </p>
             </motion.div>
           </motion.div>

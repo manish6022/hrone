@@ -1,4 +1,4 @@
-# HROne - Environment Configuration Guide
+# Pammi Greenland - Environment Configuration Guide
 
 ## Environment Variables Setup
 
@@ -28,7 +28,7 @@ NODE_ENV=production
 **Steps:**
 
 1. Go to your Render dashboard
-2. Select your HROne service
+2. Select your Pammi Greenland service
 3. Go to "Environment"
 4. Add the variables listed above
 

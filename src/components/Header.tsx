@@ -7,8 +7,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 // import { useTheme } from "@/context/ThemeContext";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useTheme } from "next-themes";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Logo } from "@/components/ui/logo";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { getNavigation } from "@/data/navigation";
@@ -119,7 +120,7 @@ export function Header() {
         setNotifications([
           {
             id: "sample-1",
-            title: "🎉 Welcome to Kodenova HR!",
+            title: "🎉 Welcome to Pammi Greenland HR!",
             message: "Your account has been successfully activated. Start exploring your dashboard and discover all the amazing features we have prepared for you.",
             type: "success" as const,
             read: false,
@@ -176,7 +177,7 @@ export function Header() {
         {
           id: "fallback-1",
           title: "🎯 Getting Started Guide",
-          message: "Welcome to Kodenova HR! Take a moment to explore the dashboard and familiarize yourself with all available features.",
+          message: "Welcome to Pammi Greenland HR! Take a moment to explore the dashboard and familiarize yourself with all available features.",
           type: "info" as const,
           read: false,
           createdAt: new Date().toISOString(),
@@ -802,40 +803,12 @@ export function Header() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     {/* Clean Professional Logo */}
-                    <motion.div
-                      className="relative p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md"
-                      whileHover={{ scale: 1.05, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                    >
-                      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                        <span className="text-blue-600 font-black text-lg tracking-tighter">HR</span>
-                      </div>
-                    </motion.div>
-
-                    <div className="flex flex-col">
-                      <motion.h2
-                        className={cn(
-                          "text-xl font-bold",
-                          theme === 'dark' ? "text-white" : "text-gray-900"
-                        )}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                      >
-                        Kodenova
-                      </motion.h2>
-                      <motion.p
-                        className={cn(
-                          "text-sm font-medium",
-                          theme === 'dark' ? "text-blue-400" : "text-blue-600"
-                        )}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        Employee Portal
-                      </motion.p>
-                    </div>
+                    <Logo
+                      size="sm"
+                      iconText="P"
+                      companyName="Pammi Greenland"
+                      isInteractive={true}
+                    />
                   </div>
 
                   <div className="flex items-center gap-2">
