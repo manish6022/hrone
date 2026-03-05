@@ -99,17 +99,6 @@ const nextConfig: NextConfig = {
   // Optimize CSS and JS loading
   // optimizeFonts: true, // Removed: not a valid Next.js option
   
-  // Experimental features for performance
-  experimental: {
-    // Optimize for production
-    optimizeCss: true,
-    // Enable modern JavaScript features
-    // Optimize package imports
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'framer-motion'],
-    // Webpack build worker
-    webpackBuildWorker: true,
-  },
-
   // Webpack optimizations for better performance
   webpack: (config, { dev, isServer }) => {
     // Optimize bundle splitting in production
