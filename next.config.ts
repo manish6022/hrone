@@ -62,11 +62,6 @@ const nextConfig: NextConfig = {
   // React compiler for better performance and security
   reactCompiler: true,
 
-  // Turbopack configuration to fix workspace root inference
-  turbopack: {
-    root: process.cwd(),
-  },
-
   // Images optimization with security
   images: {
     remotePatterns: (process.env.NEXT_PUBLIC_ALLOWED_IMAGE_DOMAINS || 'hrone-69dz.onrender.com')
