@@ -23,6 +23,7 @@ import { EmployeeProfile } from "@/components/employee-profile";
 import { AttendanceCalendar } from "@/components/ui/attendance-calendar";
 import type { AttendanceRecord } from "@/components/ui/attendance-calendar";
 import { useRouter } from "next/navigation";
+import { COMPANY_NAME } from "@/lib/constants";
 
 interface DashboardStats {
   totalEmployees: number;
@@ -298,7 +299,7 @@ export default function Dashboard() {
             {greeting}, {user?.username || (user as any)?.name || "User"}!
           </h2>
           <p className="text-sm text-gray-600 leading-relaxed">
-            Here's your Pammi Greenland overview for today
+            Here's your {COMPANY_NAME} overview for today
           </p>
         </div>
         <div className="flex items-center gap-4">

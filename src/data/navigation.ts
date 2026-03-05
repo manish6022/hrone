@@ -60,21 +60,8 @@ const baseNavigation: NavigationItem[] = [
 ];
 
 export function getNavigation(isRegularUser: boolean = false): NavigationItem[] {
-  const navigation = [...baseNavigation];
-
-  // For regular users (employees), replace Dashboard with ESS Dashboard
-  if (isRegularUser) {
-    const dashboardIndex = navigation.findIndex(item => item.name === "Dashboard");
-    if (dashboardIndex !== -1) {
-      navigation[dashboardIndex] = {
-        ...navigation[dashboardIndex],
-        name: "ESS Dashboard",
-        href: "/employee-dashboard"
-      };
-    }
-  }
-
-  return navigation;
+  // All users now use the same dashboard
+  return baseNavigation;
 }
 
 // Keep the old export for backward compatibility

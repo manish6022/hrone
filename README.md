@@ -1,8 +1,8 @@
-# Pammi Greenland - Modern HR Management System
+# KyberLogix - Modern HR Management System
 
 A comprehensive, enterprise-grade HR management system built with Next.js 16, TypeScript, and TailwindCSS. Features a stunning modern design with glassmorphism effects, advanced animations, and a sophisticated user experience.
 
-![Pammi Greenland Logo](https://via.placeholder.com/150x50/3b82f6/ffffff?text=HROne)
+![KyberLogix Logo](https://via.placeholder.com/150x50/3b82f6/ffffff?text=HROne)
 
 ## 🌟 Key Features
 
@@ -259,7 +259,7 @@ vercel --prod
 ### **Docker**
 ```bash
 # Build Docker image
-docker build -t Pammi Greenland .
+docker build -t KyberLogix .
 
 # Run container
 docker run -p 3000:3000 hrone
@@ -378,6 +378,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ by the Pammi Greenland team**
+**Built with ❤️ by the KyberLogix team**
 
 *Transforming HR management with modern technology and beautiful design.*

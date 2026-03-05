@@ -169,9 +169,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Use centralized role checking logic
     const isRegularUser = checkIsRegularUser(newUser);
 
-    console.log('Login - isRegularUser:', isRegularUser, 'redirecting to:', isRegularUser ? '/employee-dashboard' : '/');
+    console.log('Login - isRegularUser:', isRegularUser, 'redirecting to default page');
 
-    router.push(isRegularUser ? '/employee-dashboard' : '/');
+    router.push('/');
   };
 
   const logout = () => {
@@ -198,9 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Use centralized role checking logic
         const isRegularUser = user ? checkIsRegularUser(user) : false;
 
-        console.log('Route protection - isRegularUser:', isRegularUser, 'redirecting to:', isRegularUser ? '/employee-dashboard' : '/');
-
-        router.push(isRegularUser ? '/employee-dashboard' : '/');
+        router.push('/');
       }
     }
     

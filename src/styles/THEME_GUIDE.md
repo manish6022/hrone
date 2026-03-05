@@ -1,8 +1,8 @@
-# Pammi Greenland Theme System Guide
+# KyberLogix Theme System Guide
 
 ## Overview
 
-The Pammi Greenland application uses a centralized theme system where all colors, spacing, typography, and design tokens are defined in a single file: `src/styles/theme.css`
+The KyberLogix application uses a centralized theme system where all colors, spacing, typography, and design tokens are defined in a single file: `src/styles/theme.css`
 
 ## How to Change Colors
 

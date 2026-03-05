@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
+import { COMPANY_NAME, ICON_TEXT } from "@/lib/constants";
 
 interface LogoProps {
   showGodMode?: boolean;
@@ -19,8 +20,8 @@ export function Logo({
   showCompanyName = true,
   className,
   isInteractive = true,
-  iconText = "P",
-  companyName = "Pammi Greenland"
+  iconText = ICON_TEXT,
+  companyName = COMPANY_NAME
 }: LogoProps) {
   const sizeClasses = {
     sm: { container: "gap-2", icon: "h-8 w-8", text: "text-lg" },

@@ -73,7 +73,7 @@ export default function UIShowcase() {
           {/* Header */}
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Pammi Greenland UI Components Showcase
+              KyberLogix UI Components Showcase
             </h1>
             <p className="text-lg text-muted-foreground">
               Complete visual demonstration of all available UI components
@@ -510,9 +510,9 @@ export default function UIShowcase() {
 
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="item-1">
-                  <AccordionTrigger>What is HROne?</AccordionTrigger>
+                  <AccordionTrigger>What is KyberLogix?</AccordionTrigger>
                   <AccordionContent>
-                    Pammi Greenland is a modern HR management system built with Next.js and TypeScript.
+                    KyberLogix is a modern HR management system built with Next.js and TypeScript.
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-2">
@@ -727,7 +727,7 @@ export default function UIShowcase() {
           {/* Footer */}
           <div className="text-center py-8 border-t">
             <p className="text-muted-foreground">
-              Pammi Greenland UI Components Showcase - Built with Next.js, TypeScript, and TailwindCSS
+              KyberLogix UI Components Showcase - Built with Next.js, TypeScript, and TailwindCSS
             </p>
           </div>
         </motion.div>

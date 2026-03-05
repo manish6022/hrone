@@ -1,7 +1,8 @@
 import ClientLayout from "./ClientLayout";
+import { COMPANY_NAME } from "@/lib/constants";
 
 export const metadata = {
-  title: "HROne",
+  title: COMPANY_NAME,
   icons: {
     icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="#2D2D2D"/><text x="16" y="22" font-size="20" font-family="Arial" text-anchor="middle" fill="white">H</text></svg>',
   },

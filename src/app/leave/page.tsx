@@ -599,6 +599,7 @@ export default function LeavePage() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
+                      id="search"
                       type="text"
                       placeholder="Search leave applications..."
                       value={searchQuery}
@@ -608,6 +609,7 @@ export default function LeavePage() {
                   </div>
                 </div>
                 <select 
+                  id="statusFilter"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="px-4 py-2 rounded-lg border border-slate-200 focus:border-violet-500"
@@ -620,6 +622,7 @@ export default function LeavePage() {
                   <option value="rejected">Rejected</option>
                 </select>
                 <select 
+                  id="typeFilter"
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
                   className="px-4 py-2 rounded-lg border border-slate-200 focus:border-violet-500"

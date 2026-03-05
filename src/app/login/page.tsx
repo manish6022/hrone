@@ -11,6 +11,7 @@ import { Logo } from "@/components/ui/logo";
 import { validate, sanitize, RateLimiter } from "@/lib/security";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { COMPANY_NAME } from "@/lib/constants";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -154,7 +155,7 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                Sign in to your Pammi Greenland account
+                Sign in to your {COMPANY_NAME} account
               </motion.p>
             </div>
 
@@ -332,7 +333,7 @@ export default function LoginPage() {
                 "text-xs font-medium",
                 theme === 'dark' ? "text-slate-400" : "text-gray-500"
               )}>
-                Powered by Pammi Greenland Enterprise
+                Powered by {COMPANY_NAME} Enterprise
               </p>
             </motion.div>
           </motion.div>

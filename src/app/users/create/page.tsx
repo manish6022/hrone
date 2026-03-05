@@ -262,10 +262,11 @@ export default function CreateUserPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                       Email Address <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="email"
                       type="email"
                       name="email"
                       value={formData.email}
@@ -277,10 +278,11 @@ export default function CreateUserPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="username" className="block text-sm font-medium text-gray-700">
                       Username <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="username"
                       type="text"
                       name="username"
                       value={formData.username}
@@ -292,10 +294,11 @@ export default function CreateUserPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                       Password <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="password"
                       type="password"
                       name="password"
                       value={formData.password}
@@ -307,10 +310,11 @@ export default function CreateUserPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="designation" className="block text-sm font-medium text-gray-700">
                       Designation
                     </label>
                     <input
+                      id="designation"
                       type="text"
                       name="designation"
                       value={formData.designation}
@@ -322,11 +326,12 @@ export default function CreateUserPage() {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="role" className="block text-sm font-medium text-gray-700">
                       User Role <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <select
+                        id="role"
                         name="role"
                         value={formData.role}
                         onChange={handleChange}
@@ -391,10 +396,11 @@ export default function CreateUserPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
                       First Name <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="firstName"
                       type="text"
                       name="firstName"
                       value={formData.firstName}
@@ -406,10 +412,11 @@ export default function CreateUserPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
                       Last Name
                     </label>
                     <input
+                      id="lastName"
                       type="text"
                       name="lastName"
                       value={formData.lastName}
@@ -421,10 +428,11 @@ export default function CreateUserPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="employeeCode" className="block text-sm font-medium text-gray-700">
                       Employee Code <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="employeeCode"
                       type="text"
                       name="employeeCode"
                       value={formData.employeeCode}
@@ -436,10 +444,11 @@ export default function CreateUserPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="joiningDate" className="block text-sm font-medium text-gray-700">
                       Joining Date
                     </label>
                     <input
+                      id="joiningDate"
                       type="date"
                       name="joiningDate"
                       value={formData.joiningDate}
@@ -449,7 +458,7 @@ export default function CreateUserPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                       Phone Number
                     </label>
                     <div className="flex gap-2">
@@ -457,6 +466,7 @@ export default function CreateUserPage() {
                         <span className="text-sm font-medium">+91</span>
                       </div>
                       <input
+                        id="phone"
                         type="tel"
                         name="phone"
                         value={formData.phone}
@@ -469,10 +479,11 @@ export default function CreateUserPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="department" className="block text-sm font-medium text-gray-700">
                       Department
                     </label>
                     <input
+                      id="department"
                       type="text"
                       name="department"
                       value={formData.department}

@@ -281,8 +281,10 @@ export default function UsersPage() {
               </div>
               <form onSubmit={handleAssignRole} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Select User</label>
+                  <label htmlFor="assignUser" className="text-sm font-medium text-slate-700">Select User</label>
                   <select
+                    id="assignUser"
+                    name="assignUser"
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                     value={assignState.userId}
                     onChange={(e) => setAssignState({ ...assignState, userId: Number(e.target.value) })}
@@ -294,8 +296,10 @@ export default function UsersPage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Select Role</label>
+                  <label htmlFor="assignRole" className="text-sm font-medium text-slate-700">Select Role</label>
                   <select
+                    id="assignRole"
+                    name="assignRole"
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                     value={assignState.roleId}
                     onChange={(e) => setAssignState({ ...assignState, roleId: Number(e.target.value) })}
@@ -338,8 +342,10 @@ export default function UsersPage() {
               </div>
               <form onSubmit={handleAssignManager} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Select User</label>
+                  <label htmlFor="assignManagerUser" className="text-sm font-medium text-slate-700">Select User</label>
                   <select
+                    id="assignManagerUser"
+                    name="assignManagerUser"
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     value={managerAssignState.userId}
                     onChange={(e) => setManagerAssignState({ ...managerAssignState, userId: Number(e.target.value) })}
@@ -355,8 +361,10 @@ export default function UsersPage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Select Manager</label>
+                  <label htmlFor="assignManager" className="text-sm font-medium text-slate-700">Select Manager</label>
                   <select
+                    id="assignManager"
+                    name="assignManager"
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     value={managerAssignState.managerId}
                     onChange={(e) => setManagerAssignState({ ...managerAssignState, managerId: Number(e.target.value) })}
@@ -406,6 +414,8 @@ export default function UsersPage() {
                   <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
+                      id="userSearch"
+                      name="userSearch"
                       type="text"
                       placeholder="Search users..."
                       value={searchQuery}
@@ -414,6 +424,8 @@ export default function UsersPage() {
                     />
                   </div>
                   <select
+                    id="roleFilter"
+                    name="roleFilter"
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
                     className="px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"

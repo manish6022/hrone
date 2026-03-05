@@ -115,9 +115,9 @@ export function EmployeeProfile({
         )}
       </div>
 
-      {/* ----------------- SIDE CONTROLS (Hover Only) ----------------- */}
-      {(onPrev || onNext) && (
-        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 flex justify-between px-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+      {/* ----------------- SIDE CONTROLS (Always Visible) ----------------- */}
+      {(onPrev || onNext) && isActive && totalCount && totalCount > 1 && (
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 flex justify-between px-4 z-30 opacity-100 transition-opacity duration-300 pointer-events-none">
           {onPrev ? (
             <button onClick={onPrev} className="pointer-events-auto p-3 rounded-full bg-black/20 hover:bg-white/20 backdrop-blur-md text-white transition-all transform hover:-translate-x-1 border border-white/5">
               <ChevronLeft className="w-6 h-6" />

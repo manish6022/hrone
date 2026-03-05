@@ -1,97 +1,140 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyJWT } from './src/lib/security'
+import {
+  findRouteConfig,
+  requiresAuth,
+  getRequiredRoles,
+  getRequiredPermissions,
+  getRedirectPath
+} from './src/components/auth/RouteConfig'
 
-// Define protected routes
-const protectedRoutes = [
-  '/dashboard',
-  '/employee-dashboard',
-  '/users',
-  '/roles',
-  '/privileges',
-  '/attendance',
-  '/leave',
-  '/timesheet',
-  '/production',
-  '/items',
-  '/leave-types',
-  '/ui-showcase'
-]
+// Define role hierarchy for checking permissions
+const ROLE_HIERARCHY = {
+  superadmin: 4,
+  hr: 3,
+  manager: 2,
+  user: 1,
+};
 
-// Define admin-only routes
-const adminRoutes = [
-  '/users',
-  '/roles',
-  '/privileges',
-  '/production',
-  '/items',
-  '/leave-types'
-]
+// Helper function to check if user has required role level
+function hasRequiredRoleLevel(userRole: string, requiredRoles: string[]): boolean {
+  if (!userRole || requiredRoles.length === 0) return true;
 
-// Define public routes (no auth required)
-const publicRoutes = [
-  '/login',
-  '/',
-  '/api/auth/login'
-]
+  const userRoleLevel = ROLE_HIERARCHY[userRole as keyof typeof ROLE_HIERARCHY] || 0;
+  return requiredRoles.some(requiredRole => {
+    const requiredLevel = ROLE_HIERARCHY[requiredRole as keyof typeof ROLE_HIERARCHY] || 0;
+    return userRoleLevel >= requiredLevel;
+  });
+}
 
-// Check if user has required permissions
-function hasPermission(user: any, requiredPermission: string): boolean {
-  if (!user) return false
+// Enhanced permission checking
+function hasPermission(user: any, requiredPermissions: string[]): boolean {
+  if (!user) return false;
 
   // Super admin has all permissions
-  if (user.isSuperAdmin) return true
+  if (user.isSuperAdmin) return true;
 
-  // Check user privileges
-  if (user.privileges && user.privileges.some((p: any) =>
-    (typeof p === 'string' ? p : p.name)?.toLowerCase() === requiredPermission.toLowerCase()
-  )) {
-    return true
+  // Check if user has any of the required permissions
+  return requiredPermissions.every(permission => {
+    // Check user privileges
+    if (user.privileges && user.privileges.some((p: any) =>
+      (typeof p === 'string' ? p : p.name)?.toLowerCase() === permission.toLowerCase()
+    )) {
+      return true;
+    }
+
+    // Check role-based permissions
+    if (user.roles && user.roles.some((role: any) => {
+      const roleName = (typeof role === 'string' ? role : role.name)?.toLowerCase();
+      // Map common role names to permissions
+      const rolePermissions: Record<string, string[]> = {
+        'superadmin': ['*'],
+        'admin': ['*'],
+        'hr': ['user_management', 'leave_management', 'attendance_management', 'payroll_view'],
+        'manager': ['team_management', 'leave_approval', 'attendance_approval', 'reports_view'],
+        'user': ['timesheet_submit', 'leave_request', 'profile_view']
+      };
+
+      return rolePermissions[roleName]?.includes(permission) ||
+             rolePermissions[roleName]?.includes('*');
+    })) {
+      return true;
+    }
+
+    return false;
+  });
+}
+
+// Get user role from user object
+function getUserRole(user: any): string {
+  if (!user) return '';
+
+  if (user.isSuperAdmin) return 'superadmin';
+
+  // Check roles in hierarchy order
+  const roleOrder = ['superadmin', 'hr', 'manager', 'user'];
+  for (const role of roleOrder) {
+    if (user.roles?.some((r: any) =>
+      (typeof r === 'string' ? r : r.name)?.toLowerCase().includes(role)
+    )) {
+      return role;
+    }
   }
 
-  return false
+  return 'user'; // Default fallback
 }
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-  const token = request.cookies.get('token')?.value
-  const userCookie = request.cookies.get('user')?.value
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get('token')?.value;
+  const userCookie = request.cookies.get('user')?.value;
 
   // Parse user data
-  let user = null
+  let user = null;
   if (userCookie) {
     try {
-      user = JSON.parse(userCookie)
+      user = JSON.parse(userCookie);
     } catch (error) {
-      console.error('Failed to parse user cookie in middleware')
+      console.error('Failed to parse user cookie in middleware');
     }
   }
 
-  // Allow public routes
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
-    return NextResponse.next()
-  }
+  // Get route configuration
+  const routeConfig = findRouteConfig(pathname);
 
-  // Check authentication for protected routes
-  if (protectedRoutes.some(route => pathname.startsWith(route))) {
+  // Check if route requires authentication
+  if (requiresAuth(pathname)) {
     if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      return NextResponse.redirect(new URL(getRedirectPath(pathname), request.url));
     }
 
     // Verify token
-    const decodedToken = verifyJWT(token)
+    const decodedToken = verifyJWT(token);
     if (!decodedToken) {
       // Clear invalid cookies
-      const response = NextResponse.redirect(new URL('/login', request.url))
-      response.cookies.delete('token')
-      response.cookies.delete('user')
-      return response
+      const response = NextResponse.redirect(new URL(getRedirectPath(pathname), request.url));
+      response.cookies.delete('token');
+      response.cookies.delete('user');
+      return response;
     }
 
-    // Check admin-only routes
-    if (adminRoutes.some(route => pathname.startsWith(route))) {
-      if (!user?.isSuperAdmin && !hasPermission(user, 'admin_access')) {
-        return NextResponse.redirect(new URL('/employee-dashboard', request.url))
+    // Check role-based access
+    const requiredRoles = getRequiredRoles(pathname);
+    if (requiredRoles.length > 0) {
+      const userRole = getUserRole(user);
+      if (!hasRequiredRoleLevel(userRole, requiredRoles)) {
+        // Redirect to default page for unauthorized access
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+    }
+
+    // Check permission-based access
+    const requiredPermissions = getRequiredPermissions(pathname);
+    if (requiredPermissions.length > 0) {
+      if (!hasPermission(user, requiredPermissions)) {
+        // Redirect to default page for unauthorized access
+        return NextResponse.redirect(new URL('/', request.url));
       }
     }
   }
@@ -99,8 +142,8 @@ export function middleware(request: NextRequest) {
   // API routes protection
   if (pathname.startsWith('/api/')) {
     // Skip auth endpoints
-    if (pathname === '/api/auth/login') {
-      return NextResponse.next()
+    if (pathname === '/api/auth/login' || pathname.startsWith('/api/auth/refresh')) {
+      return NextResponse.next();
     }
 
     // Check authentication for API routes
@@ -108,44 +151,30 @@ export function middleware(request: NextRequest) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
-      )
+      );
     }
 
     // Verify token for API routes
-    const decodedToken = verifyJWT(token)
+    const decodedToken = verifyJWT(token);
     if (!decodedToken) {
       return NextResponse.json(
         { error: 'Invalid or expired token' },
         { status: 401 }
-      )
+      );
     }
   }
 
   // Security headers (additional layer beyond next.config.ts)
-  const response = NextResponse.next()
+  const response = NextResponse.next();
 
   // Add security headers
-  response.headers.set('X-Frame-Options', 'DENY')
-  response.headers.set('X-Content-Type-Options', 'nosniff')
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
   // Add request ID for tracking
-  response.headers.set('X-Request-ID', crypto.randomUUID())
+  response.headers.set('X-Request-ID', crypto.randomUUID());
 
-  return response
-}
-
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files with extensions
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.).*)',
-  ],
+  return response;
 }

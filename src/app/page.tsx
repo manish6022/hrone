@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { EmployeeProfile } from "@/components/employee-profile";
 import { AttendanceCalendar } from "@/components/ui/attendance-calendar";
 import type { AttendanceRecord } from "@/components/ui/attendance-calendar";
+import { COMPANY_NAME } from "@/lib/constants";
 
 interface DashboardStats {
   totalEmployees: number;
@@ -50,7 +51,7 @@ interface Holiday {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin, isHR, isManager, isRegularUser } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -103,50 +104,90 @@ export default function Dashboard() {
         ? usersResponse.data
         : usersResponse.data?.data || [];
 
-      setStats({
-        totalEmployees: users.length,
-        activeEmployees: Math.floor(users.length * 0.92),
-        onLeave: Math.floor(users.length * 0.05),
-        pendingLeave: 3,
-        todayAttendance: Math.floor(users.length * 0.88),
-        lateToday: Math.floor(users.length * 0.08),
-        avgWorkHours: "8.5h",
-        totalPayroll: 2450000,
-        pendingApprovals: 5,
-        productionItems: 12,
-        avgPerformance: 87.3,
-      });
+      // Role-based stats calculation
+      const isAdminUser = isSuperAdmin() || isHR() || isManager();
+      
+      if (isAdminUser) {
+        // Admin/Manager/HR view - company-wide stats
+        setStats({
+          totalEmployees: users.length,
+          activeEmployees: Math.floor(users.length * 0.92),
+          onLeave: Math.floor(users.length * 0.05),
+          pendingLeave: 3,
+          todayAttendance: Math.floor(users.length * 0.88),
+          lateToday: Math.floor(users.length * 0.08),
+          avgWorkHours: "8.5h",
+          totalPayroll: 2450000,
+          pendingApprovals: 5,
+          productionItems: 12,
+          avgPerformance: 87.3,
+        });
 
-      setRecentActivities([
-        {
-          type: "leave",
-          user: "Sarah Connor",
-          action: "applied for leave",
-          time: "5 mins ago",
-          icon: Calendar,
-        },
-        {
-          type: "attendance",
-          user: "John Doe",
-          action: "marked attendance",
-          time: "15 mins ago",
-          icon: CheckCircle,
-        },
-        {
-          type: "production",
-          user: "Mike Ross",
-          action: "logged production",
-          time: "1 hour ago",
-          icon: Factory,
-        },
-        {
-          type: "payroll",
-          user: "System",
-          action: "processed payroll",
-          time: "2 hours ago",
-          icon: DollarSign,
-        },
-      ]);
+        // Company-wide activities
+        setRecentActivities([
+          {
+            type: "leave",
+            user: "Sarah Connor",
+            action: "applied for leave",
+            time: "5 mins ago",
+            icon: Calendar,
+          },
+          {
+            type: "attendance",
+            user: "John Doe",
+            action: "marked attendance",
+            time: "15 mins ago",
+            icon: CheckCircle,
+          },
+          {
+            type: "production",
+            user: "Mike Ross",
+            action: "logged production",
+            time: "1 hour ago",
+            icon: Factory,
+          },
+          {
+            type: "payroll",
+            user: "System",
+            action: "processed payroll",
+            time: "2 hours ago",
+            icon: DollarSign,
+          },
+        ]);
+      } else {
+        // Regular user view - personal stats only
+        setStats({
+          totalEmployees: 1, // Just themselves
+          activeEmployees: 1,
+          onLeave: 0,
+          pendingLeave: 0,
+          todayAttendance: 1, // Assuming they marked attendance
+          lateToday: 0,
+          avgWorkHours: "8.2h",
+          totalPayroll: 45000, // Their monthly salary
+          pendingApprovals: 0,
+          productionItems: 0,
+          avgPerformance: 92.5,
+        });
+
+        // Personal activities only
+        setRecentActivities([
+          {
+            type: "attendance",
+            user: "You",
+            action: "marked attendance",
+            time: "2 hours ago",
+            icon: CheckCircle,
+          },
+          {
+            type: "timesheet",
+            user: "You",
+            action: "submitted timesheet",
+            time: "1 day ago",
+            icon: Calendar,
+          },
+        ]);
+      }
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError' && error.message !== 'canceled') {
         console.error("Failed to fetch dashboard data", error);
@@ -174,7 +215,26 @@ export default function Dashboard() {
         avatar: "RZ",
       },
     ];
-    setUpcomingBirthdays(mockBirthdays);
+
+    // Role-based birthday filtering
+    const isAdminUser = isSuperAdmin() || isHR() || isManager();
+    
+    if (isAdminUser) {
+      // Admins see all birthdays
+      setUpcomingBirthdays(mockBirthdays);
+    } else {
+      setUpcomingBirthdays(mockBirthdays);
+      // // Regular users only see their own birthday (if today is their birthday)
+      // const currentMonth = new Date().toLocaleString('default', { month: 'short' });
+      // const currentDay = new Date().getDate();
+      // const userBirthday = mockBirthdays.find(birthday => {
+      //   // This is a simplified check - in real app, you'd check against user's actual birthday
+      //   // For now, we'll show the first birthday as "the user's birthday"
+      //   return birthday.id === 1; // Assuming first birthday is the current user's
+      // });
+      
+      // setUpcomingBirthdays(userBirthday ? [userBirthday] : []);
+    }
   };
 
   const fetchHolidays = () => {
@@ -248,20 +308,31 @@ export default function Dashboard() {
   };
 
   const handleNextBirthday = () => {
+    console.log('handleNextBirthday called, current index:', currentBirthdayIndex, 'total birthdays:', upcomingBirthdays.length);
     setCurrentBirthdayIndex((prev) => {
       const nextIndex = prev < upcomingBirthdays.length - 1 ? prev + 1 : 0;
+      console.log('Setting next index to:', nextIndex);
       return nextIndex;
     });
   };
 
   const handlePrevBirthday = () => {
+    console.log('handlePrevBirthday called, current index:', currentBirthdayIndex, 'total birthdays:', upcomingBirthdays.length);
     setCurrentBirthdayIndex((prev) => {
       const prevIndex = prev > 0 ? prev - 1 : upcomingBirthdays.length - 1;
+      console.log('Setting prev index to:', prevIndex);
       return prevIndex;
     });
   };
 
   const greeting = getGreeting();
+  
+  // Role-based dashboard title and subtitle
+  const isAdminUser = isSuperAdmin() || isHR() || isManager();
+  const dashboardTitle = isAdminUser ? `${COMPANY_NAME} Dashboard` : "My Dashboard";
+  const dashboardSubtitle = isAdminUser 
+    ? `Here's your ${COMPANY_NAME} overview for today` 
+    : "Here's your personal overview for today";
 
   const StatCard = ({ title, value, change, icon: Icon, color, gradient, delay = 0 }: any) => (
     <div
@@ -345,7 +416,7 @@ export default function Dashboard() {
             {greeting}, {user?.username || (user as any)?.name || "User"}!
           </h2>
           <p className="text-sm text-gray-600 leading-relaxed">
-            Here's your Pammi Greenland overview for today
+            {dashboardSubtitle}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -369,42 +440,91 @@ export default function Dashboard() {
 
       {/* Enhanced Stats Grid with Glassmorphism */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Employees"
-          value={stats.totalEmployees}
-          change={`${stats.activeEmployees} active`}
-          icon={Users}
-          color="bg-blue-500 text-white shadow-blue-500/50"
-          gradient="bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-blue-200"
-          delay={0.1}
-        />
-        <StatCard
-          title="Today's Attendance"
-          value={`${stats.todayAttendance}/${stats.totalEmployees}`}
-          change={`${stats.lateToday} late arrivals`}
-          icon={CheckCircle}
-          color="bg-emerald-500 text-white shadow-emerald-500/50"
-          gradient="bg-gradient-to-br from-emerald-50 via-white to-green-50 border-emerald-200"
-          delay={0.2}
-        />
-        <StatCard
-          title="Pending Approvals"
-          value={stats.pendingApprovals}
-          change="Requires attention"
-          icon={AlertCircle}
-          color="bg-orange-500 text-white shadow-orange-500/50"
-          gradient="bg-gradient-to-br from-orange-50 via-white to-amber-50 border-orange-200"
-          delay={0.3}
-        />
-        <StatCard
-          title="Avg Performance"
-          value={`${stats.avgPerformance}%`}
-          change="+2.3% from last month"
-          icon={TrendingUp}
-          color="bg-purple-500 text-white shadow-purple-500/50"
-          gradient="bg-gradient-to-br from-purple-50 via-white to-pink-50 border-purple-200"
-          delay={0.4}
-        />
+        {isAdminUser ? (
+          // Admin/Manager/HR Stats
+          <>
+            <StatCard
+              title="Total Employees"
+              value={stats.totalEmployees}
+              change={`${stats.activeEmployees} active`}
+              icon={Users}
+              color="bg-blue-500 text-white shadow-blue-500/50"
+              gradient="bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-blue-200"
+              delay={0.1}
+            />
+            <StatCard
+              title="Today's Attendance"
+              value={`${stats.todayAttendance}/${stats.totalEmployees}`}
+              change={`${stats.lateToday} late arrivals`}
+              icon={CheckCircle}
+              color="bg-emerald-500 text-white shadow-emerald-500/50"
+              gradient="bg-gradient-to-br from-emerald-50 via-white to-green-50 border-emerald-200"
+              delay={0.2}
+            />
+            <StatCard
+              title="Pending Approvals"
+              value={stats.pendingApprovals}
+              change="Requires attention"
+              icon={AlertCircle}
+              color="bg-orange-500 text-white shadow-orange-500/50"
+              gradient="bg-gradient-to-br from-orange-50 via-white to-amber-50 border-orange-200"
+              delay={0.3}
+            />
+            <StatCard
+              title="Avg Performance"
+              value={`${stats.avgPerformance}%`}
+              change="+2.3% from last month"
+              icon={TrendingUp}
+              color="bg-purple-500 text-white shadow-purple-500/50"
+              gradient="bg-gradient-to-br from-purple-50 via-white to-pink-50 border-purple-200"
+              delay={0.4}
+            />
+          </>
+        ) : (
+          // Regular User Stats
+          <>
+            <StatCard
+              title="My Attendance"
+              value={`${stats.todayAttendance}/1`}
+              change="Present today"
+              icon={CheckCircle}
+              color="bg-emerald-500 text-white shadow-emerald-500/50"
+              gradient="bg-gradient-to-br from-emerald-50 via-white to-green-50 border-emerald-200"
+              delay={0.1}
+            />
+            <StatCard
+              title="My Leave Balance"
+              value="12 days"
+              change="Available this year"
+              icon={Calendar}
+              color="bg-blue-500 text-white shadow-blue-500/50"
+              gradient="bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-blue-200"
+              delay={0.2}
+            />
+            <StatCard
+              title="My Performance"
+              value={`${stats.avgPerformance}%`}
+              change="This month"
+              icon={TrendingUp}
+              color="bg-purple-500 text-white shadow-purple-500/50"
+              gradient="bg-gradient-to-br from-purple-50 via-white to-pink-50 border-purple-200"
+              delay={0.3}
+            />
+            <StatCard
+              title="My Salary"
+              value={new Intl.NumberFormat("en-IN", {
+                style: "currency",
+                currency: "INR",
+                notation: "compact",
+              }).format(stats.totalPayroll)}
+              change="Monthly"
+              icon={DollarSign}
+              color="bg-amber-500 text-white shadow-amber-500/50"
+              gradient="bg-gradient-to-br from-amber-50 via-white to-orange-50 border-amber-200"
+              delay={0.4}
+            />
+          </>
+        )}
       </div>
 
     {/* Enhanced Birthday & Calendar Section */}
@@ -562,7 +682,7 @@ export default function Dashboard() {
       </div> */}
 
       {/* Enhanced Additional Stats with Glassmorphism */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
         {/* Leave Status Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -580,7 +700,7 @@ export default function Dashboard() {
               className="flex items-center justify-between mb-6"
             >
               <h4 className="text-lg font-bold bg-gradient-to-r from-emerald-700 to-green-700 bg-clip-text text-transparent">
-                Leave Status
+                {isAdminUser ? "Leave Status" : "My Leave Balance"}
               </h4>
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
@@ -598,14 +718,16 @@ export default function Dashboard() {
                 transition={{ delay: 0.9, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">On Leave Today</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {isAdminUser ? "On Leave Today" : "Available Leave"}
+                </span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.0, duration: 0.3 }}
                   className="text-2xl font-bold text-emerald-700"
                 >
-                  {stats.onLeave}
+                  {isAdminUser ? stats.onLeave : "12"}
                 </motion.span>
               </motion.div>
               <motion.div
@@ -614,90 +736,161 @@ export default function Dashboard() {
                 transition={{ delay: 1.1, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">Pending Requests</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {isAdminUser ? "Pending Requests" : "Used This Year"}
+                </span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.2, duration: 0.3 }}
                   className="text-2xl font-bold text-amber-600"
                 >
-                  {stats.pendingLeave}
+                  {isAdminUser ? stats.pendingLeave : "3"}
                 </motion.span>
               </motion.div>
             </div>
           </div>
         </motion.div>
 
-        {/* Production Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          whileHover={{ y: -5, scale: 1.02 }}
-          className="relative group"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-transparent to-indigo-400/20 rounded-3xl"></div>
-          <div className="relative bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/80 backdrop-blur-sm rounded-3xl p-8 border border-blue-200/50 hover:shadow-2xl transition-all duration-300">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.9, duration: 0.4 }}
-              className="flex items-center justify-between mb-6"
-            >
-              <h4 className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
-                Production
-              </h4>
-              <motion.div
-                animate={{ rotate: [0, -10, 10, 0] }}
-                transition={{ duration: 3.5, repeat: Infinity }}
-                className="p-2 rounded-xl bg-blue-100 text-blue-600 shadow-lg"
+        {/* Production Card - Only show for admins */}
+        {isAdminUser && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
+            whileHover={{ y: -5, scale: 1.02 }}
+            className="relative group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-transparent to-indigo-400/20 rounded-3xl"></div>
+            <div className="relative bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/80 backdrop-blur-sm rounded-3xl p-8 border border-blue-200/50 hover:shadow-2xl transition-all duration-300">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.9, duration: 0.4 }}
+                className="flex items-center justify-between mb-6"
               >
-                <Package className="h-5 w-5" />
-              </motion.div>
-            </motion.div>
-            
-            <div className="space-y-4">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.0, duration: 0.4 }}
-                className="flex justify-between items-center p-3 rounded-xl bg-white/50"
-              >
-                <span className="text-sm font-medium text-gray-700">Active Items</span>
-                <motion.span
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.1, duration: 0.3 }}
-                  className="text-2xl font-bold text-blue-700"
+                <h4 className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                  Production
+                </h4>
+                <motion.div
+                  animate={{ rotate: [0, -10, 10, 0] }}
+                  transition={{ duration: 3.5, repeat: Infinity }}
+                  className="p-2 rounded-xl bg-blue-100 text-blue-600 shadow-lg"
                 >
-                  {stats.productionItems}
-                </motion.span>
+                  <Package className="h-5 w-5" />
+                </motion.div>
               </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.2, duration: 0.4 }}
-                className="flex justify-between items-center p-3 rounded-xl bg-white/50"
-              >
-                <span className="text-sm font-medium text-gray-700">Today's Entries</span>
-                <motion.span
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.3, duration: 0.3 }}
-                  className="text-2xl font-bold text-indigo-600"
+              
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.0, duration: 0.4 }}
+                  className="flex justify-between items-center p-3 rounded-xl bg-white/50"
                 >
-                  24
-                </motion.span>
-              </motion.div>
+                  <span className="text-sm font-medium text-gray-700">Active Items</span>
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.1, duration: 0.3 }}
+                    className="text-2xl font-bold text-blue-700"
+                  >
+                    {stats.productionItems}
+                  </motion.span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.2, duration: 0.4 }}
+                  className="flex justify-between items-center p-3 rounded-xl bg-white/50"
+                >
+                  <span className="text-sm font-medium text-gray-700">Today's Entries</span>
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.3, duration: 0.3 }}
+                    className="text-2xl font-bold text-indigo-600"
+                  >
+                    24
+                  </motion.span>
+                </motion.div>
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
+
+        {/* Performance Card - Only show for regular users */}
+        {!isAdminUser && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
+            whileHover={{ y: -5, scale: 1.02 }}
+            className="relative group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 via-transparent to-pink-400/20 rounded-3xl"></div>
+            <div className="relative bg-gradient-to-br from-purple-50/80 via-white to-pink-50/80 backdrop-blur-sm rounded-3xl p-8 border border-purple-200/50 hover:shadow-2xl transition-all duration-300">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.9, duration: 0.4 }}
+                className="flex items-center justify-between mb-6"
+              >
+                <h4 className="text-lg font-bold bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent">
+                  My Performance
+                </h4>
+                <motion.div
+                  animate={{ rotate: [0, -10, 10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="p-2 rounded-xl bg-purple-100 text-purple-600 shadow-lg"
+                >
+                  <TrendingUp className="h-5 w-5" />
+                </motion.div>
+              </motion.div>
+              
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.0, duration: 0.4 }}
+                  className="flex justify-between items-center p-3 rounded-xl bg-white/50"
+                >
+                  <span className="text-sm font-medium text-gray-700">Current Rating</span>
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.1, duration: 0.3 }}
+                    className="text-2xl font-bold text-purple-700"
+                  >
+                    {stats.avgPerformance}%
+                  </motion.span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.2, duration: 0.4 }}
+                  className="flex justify-between items-center p-3 rounded-xl bg-white/50"
+                >
+                  <span className="text-sm font-medium text-gray-700">This Month</span>
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.3, duration: 0.3 }}
+                    className="text-2xl font-bold text-pink-600"
+                  >
+                    +{Math.floor(Math.random() * 5) + 1}% ▲
+                  </motion.span>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Payroll Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9, duration: 0.6 }}
+          transition={{ delay: isAdminUser ? 0.9 : 0.8, duration: 0.6 }}
           whileHover={{ y: -5, scale: 1.02 }}
           className="relative group"
         >
@@ -710,7 +903,7 @@ export default function Dashboard() {
               className="flex items-center justify-between mb-6"
             >
               <h4 className="text-lg font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
-                Payroll
+                {isAdminUser ? "Payroll" : "My Salary"}
               </h4>
               <motion.div
                 animate={{ rotate: [0, 15, -15, 0] }}
@@ -728,18 +921,27 @@ export default function Dashboard() {
                 transition={{ delay: 1.1, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">This Month</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {isAdminUser ? "This Month" : "Monthly Salary"}
+                </span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.2, duration: 0.3 }}
                   className="text-xl font-bold text-amber-700"
                 >
-                  {new Intl.NumberFormat("en-IN", {
-                    style: "currency",
-                    currency: "INR",
-                    notation: "compact",
-                  }).format(stats.totalPayroll)}
+                  {isAdminUser ? 
+                    new Intl.NumberFormat("en-IN", {
+                      style: "currency",
+                      currency: "INR",
+                      notation: "compact",
+                    }).format(stats.totalPayroll) :
+                    new Intl.NumberFormat("en-IN", {
+                      style: "currency", 
+                      currency: "INR",
+                      notation: "compact",
+                    }).format(stats.totalPayroll)
+                  }
                 </motion.span>
               </motion.div>
               <motion.div
@@ -748,14 +950,16 @@ export default function Dashboard() {
                 transition={{ delay: 1.3, duration: 0.4 }}
                 className="flex justify-between items-center p-3 rounded-xl bg-white/50"
               >
-                <span className="text-sm font-medium text-gray-700">Processed</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {isAdminUser ? "Processed" : "Status"}
+                </span>
                 <motion.span
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.4, duration: 0.3 }}
                   className="text-2xl font-bold text-orange-600"
                 >
-                  95%
+                  {isAdminUser ? "95%" : "Paid"}
                 </motion.span>
               </motion.div>
             </div>
