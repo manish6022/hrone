@@ -1,2 +1,2 @@
-export const COMPANY_NAME = "KyberLogix";
+export const COMPANY_NAME = "Pammi Greenland";
 export const ICON_TEXT = "K";
