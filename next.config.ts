@@ -103,51 +103,6 @@ const nextConfig: NextConfig = {
       return config;
     },
   }),
-
-  // Optimize CSS and JS loading
-  // optimizeFonts: true, // Removed: not a valid Next.js option
-  
-  // Webpack optimizations for better performance
-  webpack: (config, { dev, isServer }) => {
-    // Optimize bundle splitting in production
-    if (!dev && !isServer) {
-      config.optimization.splitChunks.chunks = 'all';
-      config.optimization.splitChunks.cacheGroups = {
-        ...config.optimization.splitChunks.cacheGroups,
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
-          chunks: 'all',
-          priority: 10,
-        },
-        radix: {
-          test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
-          name: 'radix-ui',
-          chunks: 'all',
-          priority: 20,
-        },
-        lucide: {
-          test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
-          name: 'lucide',
-          chunks: 'all',
-          priority: 20,
-        },
-      };
-    }
-
-    // Remove unused code in production
-    if (!dev) {
-      config.optimization.usedExports = true;
-      config.optimization.sideEffects = true;
-    }
-
-    // Security: Prevent source maps in production
-    if (!dev) {
-      config.devtool = false;
-    }
-
-    return config;
-  },
 };
 
 export default nextConfig;
