@@ -79,8 +79,16 @@ const nextConfig: NextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // Performance optimizations for Lighthouse
-  // swcMinify: true, // Removed: SWC minifier is enabled by default in Next.js
+  // Experimental features for performance
+  experimental: {
+    // Optimize for production
+    optimizeCss: true,
+    // Enable modern JavaScript features
+    // Optimize package imports
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'framer-motion'],
+    // Webpack build worker
+    webpackBuildWorker: true,
+  },
   
   // Bundle analyzer for development
   ...(process.env.ANALYZE === 'true' && {
