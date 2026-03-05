@@ -131,7 +131,7 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
               >
-                {resolvedTheme && <Logo size="lg" showGodMode={false} showCompanyName={true} />}
+                <Logo size="lg" showGodMode={false} showCompanyName={true} />
               </motion.div>
 
               <motion.h1
